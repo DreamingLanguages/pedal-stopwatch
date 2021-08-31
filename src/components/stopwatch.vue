@@ -18,6 +18,7 @@
 
 <script>
 import { saveAs } from 'file-saver';
+import StayAwake from 'stayawake.js';
 
 export default {
   name: 'Stopwatch',
@@ -42,6 +43,9 @@ export default {
   },
   created () {
     const dataString = window.localStorage.getItem('stopwatch')
+    
+    StayAwake.init();
+    StayAwake.enable();
 
     if (dataString === null) {
       return
