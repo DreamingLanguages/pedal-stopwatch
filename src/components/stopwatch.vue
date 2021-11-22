@@ -30,7 +30,8 @@ export default {
       running: false,
       finished: false,
       totalTime: 0,
-      interval: null
+      interval: null,
+      wakeLock: null
     }
   },
   computed: {
@@ -63,6 +64,8 @@ export default {
     this.totalTime = Math.floor(now.valueOf() - this.beg.valueOf())
 
     if (this.running) {
+      this.lockScreen()
+
       this.interval = setInterval(() => {
         let now = new Date()
         this.totalTime = Math.floor(now.valueOf() - this.beg.valueOf())
@@ -97,8 +100,16 @@ export default {
         this.totalTime = Math.floor(now.valueOf() - this.beg.valueOf())
         }, 1000)
       this.finished = false
+
+      this.lockScreen()
       
       this.saveState()
+
+      document.addEventListener('visibilitychange', async() => {
+        if (this.running == true && document.visibilityState === 'visible') {
+          this.lockScreen()
+        }
+      })
     },
     newLap() {
       this.laps.push(new Date())
@@ -106,6 +117,8 @@ export default {
       this.saveState()
     },
     stop() {
+      this.releaseLock()
+
       this.running = false
       this.finished = true
       this.end = new Date()
@@ -114,6 +127,8 @@ export default {
       this.saveState()
     },
     reset() {
+      this.releaseLock()
+
       this.running = false
       this.finished = false
       this.beg = null
@@ -175,6 +190,28 @@ export default {
       let blob = new Blob([text], {type: "text/plain;charset=utf-8"})
       saveAs(blob, "timestamps.csv")
     },
+    async lockScreen() {
+      if (!this.wakeLock && 'wakeLock' in navigator) {
+        try {
+          this.wakeLock = await navigator.wakeLock.request('screen')
+          let that = this
+          this.wakeLock.addEventListener('release', () => {
+            if (that.wakeLock) {
+              that.wakeLock = null
+            }
+          })
+        } catch (err) {
+          // eslint-disable-next-line
+          console.error("Can't get screen lock:", err.name, err.message)
+        }
+      }
+    },
+    releaseLock() {
+      if (this.wakeLock) {
+        this.wakeLock.release()
+        this.wakeLock = null
+      }
+    }
   }
 }
 </script>
